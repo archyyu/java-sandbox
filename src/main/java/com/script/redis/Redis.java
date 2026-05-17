@@ -64,6 +64,15 @@ public class Redis {
         list.addAll(0, Arrays.stream(values).collect(Collectors.toList()));
     }
 
+    private void del(String key) {
+
+        this.keyValue.remove(key);
+        this.keyList.remove(key);
+        this.keySet.remove(key);
+        this.keyMap.remove(key);
+
+    }
+
     private void rpush(String key, String[] values) {
         List<String> list = this.keyList.computeIfAbsent(key, f -> new ArrayList<>());
         list.addAll(Arrays.stream(values).collect(Collectors.toList()));
@@ -140,6 +149,8 @@ public class Redis {
                 this.hset(cmdParams[1], cmdParams[2], cmdParams[3]);
             } else if (cmd.equals("HGET")) {
                 result = hget(cmdParams[1], cmdParams[2]);
+            } else if (cmd.equals("DEL")) {
+                del(cmdParams[1]);
             }
 
             if (append) {

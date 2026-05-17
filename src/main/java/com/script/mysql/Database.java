@@ -47,6 +47,9 @@ public class Database {
             } else if (query.startsWith(SqlBase.UPDATE)) {
                 Update update = new Update(query);
                 result = this.updateTable(update);
+            } else if (query.startsWith(SqlBase.DELETE)) {
+                Delete dalete = new Delete(query);
+                result = this.
             }
             else {
                 return null;
@@ -99,6 +102,17 @@ public class Database {
         }
         return table.update(update);
     
+    }
+
+    public int deteleTable(Delete delete) {
+        if (delete == null) {
+            return 0;
+        }
+        Table table = this.getTable(delete.getTable());
+        if (table == null) {
+            return 0;
+        }
+        return table.delete(delete);
     }
 
     public int insertTable(Insert insert) {

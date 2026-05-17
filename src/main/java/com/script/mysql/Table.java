@@ -38,12 +38,26 @@ public class Table implements Serializable {
         this(create.getTable(), create.getColumns());
     }
 
+    public int detele(Delete delete) {
+        if (delete == null) {
+            return 0;
+        }
+        if (this.getTableName().equals(delete.getTable()) == false) {
+            return 0;
+        }
+
+        List<List<String>> list = this.data.stream().filter( item -> this.filterByWhere(item, delete.getWhereClauses())).toList();
+        this.data.removeAll(list);
+
+        return list.size();
+    }
+
     public int update(Update update) {
 
         if (update == null) {
             return 0;
         }
-        if (update.getTable().equals(update.getTable()) == false) {
+        if (update.getTable().equals(this.getTableName()) == false) {
             return 0;
         }
 
