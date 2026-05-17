@@ -1,0 +1,20 @@
+Critical bugs:
+1. 
+LRANGE exclusive right bound — lrange uses List.subList(left, right) which has an exclusive upper bound. Real Redis uses inclusive bounds. So LRANGE list 0 3 returns 3 elements, not 4. This is tested in your redis-1 fixture file.
+2. 
+Package name — package src.main.java.com.script.redis; is unconventional. Should be package com.script.redis;. The file system path doesn't need to match the package declaration in simple projects, but mixing src.main.java into the package is non-standard.
+Design improvements:
+3. Separate parsing from execution — exec() does both string splitting + dispatch. Extract a CommandParser and a CommandExecutor for testability.
+4. Use enums for commands — The string if/else chain is fragile. Use a Map<String, Command> or an enum with a CommandHandler interface.
+5. No DEL, EXPIRE, TTL — Consider adding these for parity with real Redis.
+6. Add parameter validation before array access — e.g., cmdParams.length < 3 before cmdParams[2].
+Persistence & safety:
+7. Thread safety — HashMap/ArrayList/HashSet are not thread-safe. Use ConcurrentHashMap, CopyOnWriteArrayList, etc. if concurrent access is needed.
+8. Silent error swallowing — exec() catches all exceptions and returns 0. This masks real issues (e.g., missing params causes ArrayIndexOutOfBoundsException → returns 0 silently).
+9. Java serialization for snapshots is brittle and version-sensitive. Consider JSON or a custom binary format.
+10. Automatic recovery on startup — You define readFromSnapShot and readFromLogs but never call them in the constructor. A real server would load snapshot + replay WAL on init.
+Minor:
+- 
+computeIfAbsent(key, f -> ...) — f is unused. Convention is k -> or _ ->.
+- 
+appendLog is called even for failed commands in the current flow. Only successful commands should be written to WAL.

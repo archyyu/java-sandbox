@@ -1,0 +1,4 @@
+SET key value1
+GET key
+LPUSH list 1 2 3
+LRANGE list 0 3

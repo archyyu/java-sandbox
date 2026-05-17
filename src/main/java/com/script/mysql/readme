@@ -1,0 +1,40 @@
+Critical bugs:
+1. 
+= comparator parses all values as float — SqlComparator.EQUAL calls Float.parseFloat() on both operands. String comparisons like name = Alice throw NumberFormatException, which is silently swallowed in Database.exec() (returns null). This makes WHERE clauses on non-numeric columns completely broken.
+2. 
+DELETE is defined but never wired — Delete.java exists but Database.exec() has no branch for it. DELETE queries silently return null. Also, Delete never extracts the table name from the query.
+3. 
+Update constructor NPE — Update.columns and Update.values are never initialized (line 9-10), so this.columns.add(...) (line 45) throws NullPointerException. Need = new ArrayList<>().
+4. 
+Nonsense guard in Table.update() — update.getTable().equals(update.getTable()) == false (line 46) always evaluates to false. Should be update.getTable().equals(this.tableName) == false.
+5. 
+SELECT lowercases the entire query — Select.java:15 calls toLowerCase() on the full SQL string. Column values like Alice become alice, but INSERT stores original case. Queries like WHERE name = Alice will never match.
+6. 
+Inconsistent case handling in Database.exec() — CREATE uses query.toLowerCase().startsWith(...), but INSERT, SELECT, UPDATE use query.startsWith(...) with lowercase constants. This works only if the query is already lowercase — mixed case will silently fail.
+Design improvements:
+7. SQL parsing is fragile — Heavy reliance on split() and contains() breaks on values containing keywords like "from", "where", "and". No support for quoted strings. Consider a real parser or at least tokenization with quote awareness.
+8. No type system — All values are stored as String. No INT/DATE/VARCHAR distinction. The shop fixture writes Alice without quotes (invalid SQL), so the parser can't distinguish identifiers from string literals.
+9. WHERE only supports AND — Comment says "will support or later" but the logic in filterByWhere hardcodes AND with early-exit on false. Need a composite expression tree for full WHERE support.
+10. Snapshot serialization is fragile — Java serialization on List<List<String>> will break if the class evolves. Use JSON or a defined binary format.
+Missing features:
+- 
+No primary keys or row identity (can't distinguish duplicate rows, can't implement DELETE or point updates)
+- 
+No index support (hash index is mentioned in test comments but absent)
+- 
+shop log file uses Alice without quotes — causing ambiguity with column names
+
+
+For range query support (<, >, <=, >=), a B+Tree would be the natural choice — it's what real MySQL InnoDB uses.
+Conceptually for an in-memory version:
+- 
+Internal nodes route searches, leaf nodes contain sorted key + list of row references in sorted order.
+- 
+Leaf nodes are linked for efficient range scans — once you find the start of a range, you just walk the linked list.
+- 
+On INSERT, insert the key into the B+Tree (find the right leaf, insert sorted, split if full).
+- 
+On UPDATE/DELETE, remove and re-insert the key.
+- 
+Self-balancing, O(log n) for point lookups and range queries.
+A simpler alternative with the same property: skip list. Easier to implement, probabilistic O(log n), and also supports efficient range scans — just find the start node then follow pointers.

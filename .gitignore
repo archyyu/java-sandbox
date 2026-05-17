@@ -1,0 +1,10 @@
+*.class
+*.jar
+*.log
+*.snap
+.settings/
+bin/
+target/
+.idea/
+*.iml
+.vscode/
