@@ -38,7 +38,7 @@ public class Table implements Serializable {
         this(create.getTable(), create.getColumns());
     }
 
-    public int detele(Delete delete) {
+    public int delete(Delete delete) {
         if (delete == null) {
             return 0;
         }

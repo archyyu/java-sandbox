@@ -49,7 +49,7 @@ public class Database {
                 result = this.updateTable(update);
             } else if (query.startsWith(SqlBase.DELETE)) {
                 Delete dalete = new Delete(query);
-                result = this.
+                result = this.deteleTable(dalete);
             }
             else {
                 return null;
