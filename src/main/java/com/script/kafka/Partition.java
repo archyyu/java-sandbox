@@ -1,5 +1,6 @@
-package src.main.java.com.script.kafka;
+package com.script.kafka;
 
+import java.io.FileWriter;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 

@@ -1,4 +1,4 @@
-package src.main.java.com.script.redis;
+package com.script.redis;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -20,6 +20,7 @@ import java.util.HashSet;
 public class Redis {
 
     private FileWriter fileWriter;
+    private int logLines = 0;
 
     // this is a redis-like database, support a variety of datastructure
     // it has two files to support the persistence, one is WAL which is appendonly,

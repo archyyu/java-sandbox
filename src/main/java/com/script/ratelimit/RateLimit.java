@@ -1,4 +1,4 @@
-package src.main.java.com.script.ratelimit;
+package com.script.ratelimit;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

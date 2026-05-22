@@ -1,4 +1,4 @@
-package src.main.java.com.script.util;
+package com.script.util;
 
 public class Server {
 

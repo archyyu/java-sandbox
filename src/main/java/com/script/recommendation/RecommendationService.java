@@ -1,4 +1,4 @@
-package src.main.java.com.script.recommendation;
+package com.script.recommendation;
 
 public class RecommendationService {
     

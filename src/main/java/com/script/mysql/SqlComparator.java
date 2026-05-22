@@ -1,4 +1,4 @@
-package src.main.java.com.script.mysql;
+package com.script.mysql;
 
 public enum SqlComparator {
 
@@ -17,7 +17,7 @@ public enum SqlComparator {
     EQUAL("=") {
         @Override
         public boolean compare(String a, String b) {
-            return Float.parseFloat(a) == Float.parseFloat(b);
+            return a.equals(b);
         }
     },
     GREAT(">") {

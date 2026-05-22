@@ -1,4 +1,4 @@
-package src.main.java.com.script.kafka;
+package com.script.kafka;
 
 import java.util.ArrayList;
 import java.util.List;

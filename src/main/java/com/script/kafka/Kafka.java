@@ -1,4 +1,4 @@
-package src.main.java.com.script.kafka;
+package com.script.kafka;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +23,7 @@ public class Kafka {
         kafkaConsumer.setLastActiveTime(System.currentTimeMillis());
 
         Topic topic = this.topicMessagebus.computeIfAbsent(topicName, f -> new Topic(defaultPartitionSize));
-        topic.consumeMessage();
+        topic.consumeMessage(0);
 
         
 

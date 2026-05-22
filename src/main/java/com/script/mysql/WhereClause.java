@@ -1,4 +1,4 @@
-package src.main.java.com.script.mysql;
+package com.script.mysql;
 
 public class WhereClause {
     

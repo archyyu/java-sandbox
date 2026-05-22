@@ -1,4 +1,4 @@
-package src.main.java.com.script.mysql;
+package com.script.mysql;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +13,7 @@ public class Update extends SqlBase{
         this.initUpdateClause(columns, table, values, wheres);
     }
 
+    
     private void initUpdateClause(String[] columns, String table, String[] values, String[] wheres) {
         this.columns = Arrays.stream(columns).map(item -> { return item.trim(); }).collect(Collectors.toList());
         this.values = Arrays.stream(values).map(item -> { return item.trim(); }).collect(Collectors.toList());

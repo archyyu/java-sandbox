@@ -1,4 +1,4 @@
-package src.main.java.com.script.mysql;
+package com.script.mysql;
 
 import java.util.Arrays;
 import java.util.List;

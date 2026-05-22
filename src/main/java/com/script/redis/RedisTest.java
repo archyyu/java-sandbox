@@ -1,4 +1,4 @@
-package src.main.java.com.script.redis;
+package com.script.redis;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

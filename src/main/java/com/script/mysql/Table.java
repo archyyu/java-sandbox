@@ -1,4 +1,4 @@
-package src.main.java.com.script.mysql;
+package com.script.mysql;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,6 +11,8 @@ import java.util.Arrays;
 public class Table implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    // private
     
     private String tableName;
 

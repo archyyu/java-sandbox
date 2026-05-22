@@ -1,12 +1,15 @@
+this is a mysql-like memory database, which supports some basic sql queries, like select, insert, update and delete.
+I wrote this small project to practise.
+
+the persistence is WAL plus SNAPSHOT, very basic, but enough for this toy database.
+
+I will continue improve this mysql-like memory database project, for example, to support the index, and 
+
+you could use jbang to check the SqlTest.java file, it has the basic usage of this database.
+
+
 Critical bugs:
-1. 
-= comparator parses all values as float — SqlComparator.EQUAL calls Float.parseFloat() on both operands. String comparisons like name = Alice throw NumberFormatException, which is silently swallowed in Database.exec() (returns null). This makes WHERE clauses on non-numeric columns completely broken.
-2. 
-DELETE is defined but never wired — Delete.java exists but Database.exec() has no branch for it. DELETE queries silently return null. Also, Delete never extracts the table name from the query.
-3. 
-Update constructor NPE — Update.columns and Update.values are never initialized (line 9-10), so this.columns.add(...) (line 45) throws NullPointerException. Need = new ArrayList<>().
-4. 
-Nonsense guard in Table.update() — update.getTable().equals(update.getTable()) == false (line 46) always evaluates to false. Should be update.getTable().equals(this.tableName) == false.
+
 5. 
 SELECT lowercases the entire query — Select.java:15 calls toLowerCase() on the full SQL string. Column values like Alice become alice, but INSERT stores original case. Queries like WHERE name = Alice will never match.
 6. 
