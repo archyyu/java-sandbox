@@ -1,6 +1,7 @@
 package com.script.mysql;
 
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -19,6 +20,7 @@ public class Table implements Serializable {
     private List<String> columns;
 
     private List<List<String>> data;
+    private ReentrantReadWriteLock dataLock = new ReentrantReadWriteLock();
 
     public Table(String name, String[] columns) {
         this.tableName = name;
@@ -49,7 +51,12 @@ public class Table implements Serializable {
         }
 
         List<List<String>> list = this.data.stream().filter( item -> this.filterByWhere(item, delete.getWhereClauses())).toList();
-        this.data.removeAll(list);
+        this.dataLock.writeLock().lock();
+        try {
+            this.data.removeAll(list);
+        } finally {
+            this.dataLock.writeLock().unlock();
+        }
 
         return list.size();
     }
@@ -71,10 +78,15 @@ public class Table implements Serializable {
 
         List<Integer> targetIndexes = this.targetIndexes(update.getColumns());
 
-        for(List<String> row : selectData) {
-            for(int i=0;i<targetIndexes.size();i++) {
-                row.set(targetIndexes.get(i), update.getValues().get(i));
+        this.dataLock.writeLock().lock();
+        try {
+            for(List<String> row : selectData) {
+                for(int i=0;i<targetIndexes.size();i++) {
+                    row.set(targetIndexes.get(i), update.getValues().get(i));
+                }
             }
+        } finally {
+            this.dataLock.writeLock().unlock();
         }
 
         return selectData.size();
@@ -94,9 +106,15 @@ public class Table implements Serializable {
             return 0;
         }
 
-        this.data.add(insert.getValues());
+        this.dataLock.writeLock().lock();
+        try {
+            this.data.add(insert.getValues());
+        } finally {
+            this.dataLock.writeLock().unlock();
+        }
 
-        return 1;
+
+        return insert.getValues().size();
 
     }
 
@@ -141,16 +159,22 @@ public class Table implements Serializable {
 
         List<Integer> targetIndexes = this.targetIndexes(selectClause.getColumns());
 
-        List<List<String>> list = this.data.stream().filter( item -> this.filterByWhere(item, selectClause.getWhereClauses()))
-            .map( row -> {
-                List<String> items = new ArrayList<>();
-                targetIndexes.forEach( index -> {
-                    items.add(row.get(index));
-                });
-                return items;
-            }).collect(Collectors.toList()) ;
+        this.dataLock.readLock().lock();
+        try {
+            List<List<String>> list = this.data.stream().filter( item -> this.filterByWhere(item, selectClause.getWhereClauses()))
+                .map( row -> {
+                    List<String> items = new ArrayList<>();
+                    targetIndexes.forEach( index -> {
+                        items.add(row.get(index));
+                    });
+                    return items;
+                }).collect(Collectors.toList()) ;
 
-        return list;
+            return list;
+        } finally {
+            this.dataLock.writeLock().unlock();
+        }
+        
     }
 
     // now, only support the and, will support or later

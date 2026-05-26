@@ -10,10 +10,14 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -39,7 +43,7 @@ public class Redis {
 
     // SET key value
     // GET key
-    private Map<String, String> keyValue = new HashMap<>();
+    private Map<String, String> keyValue = new ConcurrentHashMap<>();
 
     private void set(String key, String value) {
         if (key == null || value == null) {
@@ -52,16 +56,17 @@ public class Redis {
         if (key == null) {
             return null;
         }
-        return this.keyValue.get(key);
+        String result = this.keyValue.get(key);
+        return result;
     }
 
     // LPUSH key value [value ...]
     // RPUSH key value [value ...]
     // lget
-    private Map<String, List<String>> keyList = new HashMap<>();
+    private Map<String, List<String>> keyList = new ConcurrentHashMap<>();
 
     private void lpush(String key, String[] values) {
-        List<String> list = this.keyList.computeIfAbsent(key, f -> new ArrayList<>());
+        List<String> list = this.keyList.computeIfAbsent(key, f -> Collections.synchronizedList(new ArrayList<>()));
         list.addAll(0, Arrays.stream(values).collect(Collectors.toList()));
     }
 
@@ -75,7 +80,7 @@ public class Redis {
     }
 
     private void rpush(String key, String[] values) {
-        List<String> list = this.keyList.computeIfAbsent(key, f -> new ArrayList<>());
+        List<String> list = this.keyList.computeIfAbsent(key, f -> Collections.synchronizedList(new ArrayList<>()));
         list.addAll(Arrays.stream(values).collect(Collectors.toList()));
     }
 
@@ -83,21 +88,24 @@ public class Redis {
         if (this.keyList.containsKey(key) == false) {
             return null;
         }
-        return this.keyList.get(key).subList(left, right);
+
+        List<String> result = this.keyList.get(key).subList(left, right);
+        return result;
     }
 
     // SADD key member [member ...]
     // SREM key member [member ...]
     // SMEMBERS key
-    private Map<String, Set<String>> keySet = new HashMap<>();
+    private Map<String, Set<String>> keySet = new ConcurrentHashMap<>();
 
     private void sadd(String key, String[] values) {
-        Set<String> set = this.keySet.computeIfAbsent(key, f -> new HashSet<>());
+        
+        Set<String> set = this.keySet.computeIfAbsent(key, f -> new ConcurrentSkipListSet<>());
         set.addAll(Arrays.stream(values).toList());
     }
 
     private void srem(String key, String[] values) {
-        Set<String> set = this.keySet.computeIfAbsent(key, f -> new HashSet<>());
+        Set<String> set = this.keySet.computeIfAbsent(key, f -> new ConcurrentSkipListSet<>());
         set.removeAll(Arrays.stream(values).toList());
     }
 
@@ -108,15 +116,15 @@ public class Redis {
 
     // HSET key field value
     // HGET key field
-    private Map<String, Map<String, String>> keyMap = new HashMap<>();
+    private Map<String, Map<String, String>> keyMap = new ConcurrentHashMap<>();
 
     private void hset(String key, String field, String value) {
-        Map<String, String> map = this.keyMap.computeIfAbsent(key, f -> new HashMap<>());
+        Map<String, String> map = this.keyMap.computeIfAbsent(key, f -> new ConcurrentHashMap<>());
         map.put(field, value);
     }
 
     private String hget(String key, String field) {
-        Map<String, String> map = this.keyMap.computeIfAbsent(key, f -> new HashMap<>());
+        Map<String, String> map = this.keyMap.computeIfAbsent(key, f -> new ConcurrentHashMap<>());
         return map.get(field);
     }
 
@@ -168,8 +176,11 @@ public class Redis {
         if (this.fileWriter == null) {
             return;
         }
-        this.fileWriter.append(cmdStr + "\n");
-        this.fileWriter.flush();
+        synchronized(this.fileWriter) {
+            this.fileWriter.append(cmdStr + "\n");
+            this.fileWriter.flush();
+        }
+
     }
 
     public void readFromLogs(String filePath) {
