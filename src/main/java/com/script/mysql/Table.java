@@ -172,7 +172,7 @@ public class Table implements Serializable {
 
             return list;
         } finally {
-            this.dataLock.writeLock().unlock();
+            this.dataLock.readLock().unlock();
         }
         
     }

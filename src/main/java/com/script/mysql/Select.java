@@ -34,6 +34,11 @@ public class Select extends SqlBase {
 
     }
 
+    @Override
+    public String toString() {
+        return "Select [columns=" + columns + ", whereClauses=" + whereClauses + ", getTable()=" + getTable() + "]";
+    }
+
     public Select(String[] columns, String table, String[] wheres) {
         this.initSelectClause(columns, table, wheres);
     }

@@ -2,20 +2,24 @@ package com.script.service;
 
 import com.script.redis.Redis;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class RedisService {
 
     private final Redis redis;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public RedisService() {
         this.redis = new Redis();
     }
 
     public Object exec(String command) {
-        synchronized (this) {
-            return redis.exec(command);
-        }
+        
+        logger.info("command:" + command);
+        Object object = redis.exec(command);
+        return object;
     }
 
     public String get(String key) {

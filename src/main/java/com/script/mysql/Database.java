@@ -1,6 +1,11 @@
 package com.script.mysql;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -19,7 +24,9 @@ public class Database {
 
     private String databaseName;
 
-    private Map<String, Table> tableDict = new HashMap<>();
+    private Map<String, Table> tableDict = new ConcurrentHashMap<>();
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     public Database(String name) throws Exception{
         this.databaseName = name;
@@ -42,6 +49,7 @@ public class Database {
                 result = this.insertTable(insert);
             } else if (query.startsWith(SqlBase.SELECT)) {
                 Select select = new Select(query);
+                this.logger.info("select:" + select.toString());
                 result = this.selectTable(select);
                 append = false;
             } else if (query.startsWith(SqlBase.UPDATE)) {
@@ -61,7 +69,7 @@ public class Database {
 
             return result;
         } catch (Exception ex) {
-
+            logger.info("exec", ex);
             return null;
         }
     }

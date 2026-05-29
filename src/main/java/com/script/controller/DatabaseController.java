@@ -16,12 +16,8 @@ public class DatabaseController {
     }
 
     @PostMapping("/exec")
-    public Object exec(@RequestBody Map<String, String> body) throws Exception {
-        return databaseService.exec(body.get("query"));
+    public Map<String, Object> exec(@RequestBody Map<String, String> body) throws Exception {
+        return Map.of("result", databaseService.exec(body.get("query")));
     }
 
-    @PostMapping("/query")
-    public Object query(@RequestBody Map<String, String> body) throws Exception {
-        return databaseService.query(body.get("sql"));
-    }
 }

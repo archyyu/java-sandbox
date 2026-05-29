@@ -12,14 +12,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 
 public class Redis {
 
@@ -89,6 +86,16 @@ public class Redis {
             return null;
         }
 
+        List<String> values = this.keyList.get(key);
+
+        if (left < 0) {
+            left = 0;
+        }
+
+        if (right > values.size()) {
+            right = values.size();
+        }
+
         List<String> result = this.keyList.get(key).subList(left, right);
         return result;
     }
@@ -110,7 +117,7 @@ public class Redis {
     }
 
     private Set<String> smembers(String key) {
-        Set<String> result = this.keySet.get(key);
+        Set<String> result = Collections.unmodifiableSet(this.keySet.get(key));
         return result;
     }
 
@@ -124,7 +131,7 @@ public class Redis {
     }
 
     private String hget(String key, String field) {
-        Map<String, String> map = this.keyMap.computeIfAbsent(key, f -> new ConcurrentHashMap<>());
+        Map<String, String> map = this.keyMap.getOrDefault(key, Collections.emptyMap());
         return map.get(field);
     }
 
@@ -135,7 +142,7 @@ public class Redis {
     public Object exec(String cmdStr, boolean append) {
 
         try {
-            Object result = 1;
+            Object result = '1';
             String[] cmdParams = cmdStr.split(" ");
             String cmd = cmdParams[0];
             if (cmd.equals("SET")) {

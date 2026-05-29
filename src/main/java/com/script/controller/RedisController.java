@@ -17,8 +17,8 @@ public class RedisController {
     }
 
     @PostMapping("/exec")
-    public Object exec(@RequestBody Map<String, String> body) {
-        return redisService.exec(body.get("command"));
+    public Map<String, Object> exec(@RequestBody Map<String, String> body) {
+        return Map.of("result", redisService.exec(body.get("command")));
     }
 
     @GetMapping("/get/{key}")
