@@ -5,10 +5,11 @@ class Redis:
     def __init__(self):
         self.token = ""
 
-    def login(self, password):
-        data = {"password": password}
+    def login(self, username, password):
+        data = {"username": username,"password": password}
         response = requests.post("http://localhost:8080/api/auth/login", json=data).json()
         self.token = response["token"]
+        print(self.token)
 
     def exec(self, query):
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -50,7 +51,7 @@ class Redis:
 
 redis = Redis()
 
-redis.login("123123")
+redis.login("user1", "pass1")
 
 print(redis.get("key1"))
 print(redis.get("key2"))

@@ -17,9 +17,9 @@ public class AuthController {
 
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> body) {
-        String token = authService.login(body.get("password"));
+        String token = authService.login(body.get("username"), body.get("password"));
         if (token == null) {
-            return Map.of("error", "invalid password");
+            return Map.of("error", "invalid username or password");
         }
         return Map.of("token", token);
     }
