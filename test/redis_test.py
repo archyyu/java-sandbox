@@ -2,9 +2,18 @@ import requests
 
 class Redis:
 
+    def __init__(self):
+        self.token = ""
+
+    def login(self, password):
+        data = {"password": password}
+        response = requests.post("http://localhost:8080/api/auth/login", json=data).json()
+        self.token = response["token"]
+
     def exec(self, query):
+        headers = {"Authorization": f"Bearer {self.token}"}
         data = {"command": query}
-        return requests.post("http://localhost:8080/api/redis/exec", json=data).json()
+        return requests.post("http://localhost:8080/api/redis/exec", headers=headers, json=data).json()
 
     def set(self, key, value):
         query = f"SET {key} {value}"
@@ -41,6 +50,7 @@ class Redis:
 
 redis = Redis()
 
+redis.login("123123")
 
 print(redis.get("key1"))
 print(redis.get("key2"))
