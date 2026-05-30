@@ -13,3 +13,7 @@ LRANGE list2 0 7
 DEL set
 SADD set 1 2 3 5
 SMEMBERS set
+GET key1
+GET key2
+GET key1
+GET key2
