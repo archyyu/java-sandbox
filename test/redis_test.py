@@ -4,7 +4,7 @@ class Redis:
 
     def exec(self, query):
         data = {"command": query}
-        return requests.post("http://localhost:8080/api/redis/exec", json=data)
+        return requests.post("http://localhost:8080/api/redis/exec", json=data).json()
 
     def set(self, key, value):
         query = f"SET {key} {value}"
@@ -36,54 +36,11 @@ class Redis:
 
     def map_get(self, key, subkey):
         query = f"HGET {key} {subkey}"
-        return self.exec(query)     
-
-def redis(data):
-    return requests.post("http://localhost:8080/api/redis/exec", json=data)
-
-def rem_key(key):
-    request = {"command": f"DEL {key}"}
-    return redis(request)
-
-def testKeyValue(key, value):
-    rem_key(key)
-    data = {"command": f"SET {key} {value}"}
-    redis(data)
-    data = {"command": f"GET {key}"}
-
-    response = redis(data)
-    print(response.json()["result"] == value)
+        return self.exec(query)
 
 
-testKeyValue("key1", "value1")
-testKeyValue("key2", "value2")
+redis = Redis()
 
 
-def testKeyList(key, list):
-    rem_key(key)
-
-    data = {"command": f"LPUSH {key} {' '.join(str(x) for x in list)}"}
-    redis(data)
-
-    request = {"command": f"LRANGE {key} 0 {len(list)}"}
-    response = redis(request)
-
-    print(response.json()["result"] == [str(x) for x in list])
-
-
-testKeyList("list", [1,2,3,4])
-testKeyList("list2", [1,2,3,4,4,5,9])
-
-def testKeySet(key, set):
-    rem_key(key)
-    request = {"command": f"SADD {key} {' '.join(str(x) for x in set)}"}
-    redis(request)
-
-    request["command"] = f"SMEMBERS {key}"
-    response = redis(request)
-
-    print(response.json()["result"] == [str(x) for x in set])
-
-testKeySet("set", {1, 2, 3, 5})
-
-
+print(redis.get("key1"))
+print(redis.get("key2"))

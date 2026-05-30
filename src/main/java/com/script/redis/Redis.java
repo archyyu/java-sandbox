@@ -32,6 +32,7 @@ public class Redis {
     // then replay the WAL files.
     public Redis(String filename) throws Exception {
         this.fileWriter = new FileWriter(filename, true);
+        this.readFromLogs(filename);
     }
 
     public Redis() {

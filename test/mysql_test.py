@@ -3,7 +3,7 @@ import requests
 class Mysql:
     def exec(self, query):
         data = {"query": query}
-        return requests.post("http://localhost:8080/api/mysql/exec", json=data)
+        return requests.post("http://localhost:8080/api/mysql/exec", json=data).json()
     
 
 
@@ -23,4 +23,7 @@ def test_table():
 
     print(result.json())
 
-test_table()
+# test_table()
+
+mysql = Mysql();
+print(mysql.exec("select id, name, price from product where id<=2"))

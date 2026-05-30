@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class Database {
@@ -31,6 +30,7 @@ public class Database {
     public Database(String name) throws Exception{
         this.databaseName = name;
         this.fileWriter = new FileWriter(this.databaseName, true);
+        this.readFromLogs(name);
     }
 
     public Object exec(String query) throws Exception{

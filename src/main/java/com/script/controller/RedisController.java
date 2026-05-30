@@ -1,6 +1,10 @@
 package com.script.controller;
 
 import com.script.service.RedisService;
+
+import jakarta.annotation.Resource;
+
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -10,11 +14,8 @@ import java.util.Map;
 @RequestMapping("/api/redis")
 public class RedisController {
 
-    private final RedisService redisService;
-
-    public RedisController(RedisService redisService) {
-        this.redisService = redisService;
-    }
+    @Resource
+    private RedisService redisService;
 
     @PostMapping("/exec")
     public Map<String, Object> exec(@RequestBody Map<String, String> body) {
