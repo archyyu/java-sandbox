@@ -16,7 +16,7 @@ public class Partition {
         if (this.messages.isEmpty()) {
             return null;
         }
-        return this.messages.peek();
+        return this.messages.poll();
     }
     
 }

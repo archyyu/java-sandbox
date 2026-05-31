@@ -19,6 +19,10 @@ public class Topic {
         this.produceIndex = new AtomicInteger(0);
     }
 
+    public int getPartitionSize() {
+        return list.size();
+    }
+
     public Object consumeMessage(int consumerIndex) {
         return this.list.get(consumerIndex).readMessage();
     }

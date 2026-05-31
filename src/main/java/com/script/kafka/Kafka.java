@@ -1,11 +1,14 @@
 package com.script.kafka;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Kafka {
 
     private final int defaultPartitionSize = 20;
+
+
     
     private Map<String, Topic> topicMessagebus = new ConcurrentHashMap<>();
 
@@ -22,15 +25,41 @@ public class Kafka {
         KafkaConsumer kafkaConsumer = consumerMap.computeIfAbsent(consumer, f -> new KafkaConsumer(consumer, System.currentTimeMillis()));
         kafkaConsumer.setLastActiveTime(System.currentTimeMillis());
 
+
         Topic topic = this.topicMessagebus.computeIfAbsent(topicName, f -> new Topic(defaultPartitionSize));
-        topic.consumeMessage(0);
-
         
+        int consumerSize = this.getAvaliableConsumers().size();
 
-        return null;
+        int sizeEachConsumer = ((topic.getPartitionSize() / consumerSize) +
+                 (topic.getPartitionSize()%consumerSize > 0 ? 1 : 0));
+
+        int start = this.getConsumeIndex(consumer) * sizeEachConsumer;
+        int end = Math.min(start + sizeEachConsumer, topic.getPartitionSize());
+
+        int consumeIndex = (kafkaConsumer.getReadIndex() % (end - start)) + start;
+        return topic.consumeMessage(consumeIndex);
+
     }
 
-    public void produce(Object object) {
+    public int getConsumeIndex(String consumer) {
+
+        List<KafkaConsumer> list = this.getAvaliableConsumers();
+        List<String> nameList = list.stream().map( item -> { return item.getName(); }).toList();
+
+        return nameList.indexOf(consumer);
+    }
+
+    public List<KafkaConsumer> getAvaliableConsumers() {
+
+        long avaliableTime = System.currentTimeMillis() - 50 * 1000;
+        return this.consumerMap.values().stream().filter( item -> { return (item.getLastActiveTime() > avaliableTime); }).toList();
+
+    }
+
+    public void produce(Object object, String topicName) {
+
+        Topic topic = this.topicMessagebus.computeIfAbsent(topicName, f -> new Topic(defaultPartitionSize));
+        topic.appendMessage(object);
 
     }
 
