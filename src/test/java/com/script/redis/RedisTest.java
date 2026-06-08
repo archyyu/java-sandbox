@@ -2,6 +2,7 @@ package com.script.redis;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -13,8 +14,8 @@ class RedisTest {
     private Redis redis;
 
     @BeforeEach
-    void setUp() {
-        redis = new Redis();
+    void setUp() throws IOException{
+        redis = new Redis("redis");
     }
 
     // ---- Key-Value (SET / GET) ----

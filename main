@@ -1,27 +1,3 @@
-DEL key1
-SET key1 value1
-GET key1
-DEL key2
-SET key2 value2
-GET key2
-DEL list
-LPUSH list 1 2 3 4
-LRANGE list 0 4
-DEL list2
-LPUSH list2 1 2 3 4 4 5 9
-LRANGE list2 0 7
-DEL set
-SADD set 1 2 3 5
-SMEMBERS set
-GET key1
-GET key2
-GET key1
-GET key2
-GET key1
-GET key2
-GET key1
-GET key2
-GET key1
-GET key2
-GET key1
-GET key2
+SMEMBER keySet3
+SMEMBER keySet3
+SET hello world

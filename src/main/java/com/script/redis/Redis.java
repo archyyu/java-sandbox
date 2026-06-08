@@ -1,18 +1,22 @@
 package com.script.redis;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +25,10 @@ import java.util.Collections;
 public class Redis {
 
     private FileWriter fileWriter;
-    private int logLines = 0;
+    private final int logCapacity = 10000;
+    private String logsFileName;
+    private String snapshotFileName;
+    private AtomicInteger linesCount = new AtomicInteger(0);
 
     // this is a redis-like database, support a variety of datastructure
     // it has two files to support the persistence, one is WAL which is appendonly,
@@ -30,13 +37,18 @@ public class Redis {
     // once the WAL is too long, it would save a snapshot and reset the WAL file.
     // so when it is to recover, it would firstly recover from the latest snapshot,
     // then replay the WAL files.
-    public Redis(String filename) throws Exception {
+    public Redis(String filename) throws IOException {
+        try {
+            this.linesCount.addAndGet((int)Files.lines(Path.of(filename)).count());
+        } catch (Exception ex) {
+            //could ignore, should be the file doesnt exists.
+        }
+
+
         this.fileWriter = new FileWriter(filename, true);
-        this.readFromLogs(filename);
-    }
-
-    public Redis() {
-
+        this.logsFileName = filename;
+        this.snapshotFileName = filename;
+        // this.readFromLogs(filename);
     }
 
     // SET key value
@@ -119,6 +131,8 @@ public class Redis {
 
     private Set<String> smembers(String key) {
         Set<String> result = Collections.unmodifiableSet(this.keySet.get(key));
+        System.err.println("key: " + key);
+        System.err.println("value:" + result);
         return result;
     }
 
@@ -150,22 +164,26 @@ public class Redis {
                 this.set(cmdParams[1], cmdParams[2]);
             } else if (cmd.equals("GET")) {
                 result = this.get(cmdParams[1]);
+                append = false;
             } else if (cmd.equals("LPUSH")) {
                 this.lpush(cmdParams[1], Arrays.copyOfRange(cmdParams, 2, cmdParams.length));
             } else if (cmd.equals("RPUSH")) {
                 this.rpush(cmdParams[1], Arrays.copyOfRange(cmdParams, 2, cmdParams.length));
             } else if (cmd.equals("LRANGE")) {
                 result = this.lrange(cmdParams[1], Integer.parseInt(cmdParams[2]), Integer.parseInt(cmdParams[3]));
+                append = false;
             } else if (cmd.equals("SADD")) {
                 this.sadd(cmdParams[1], Arrays.copyOfRange(cmdParams, 2, cmdParams.length));
             } else if (cmd.equals("SREM")) {
                 this.srem(cmdParams[1], Arrays.copyOfRange(cmdParams, 2, cmdParams.length));
             } else if (cmd.equals("SMEMBERS")) {
                 result = this.smembers(cmdParams[1]);
+                append = false;
             } else if (cmd.equals("HSET")) {
                 this.hset(cmdParams[1], cmdParams[2], cmdParams[3]);
             } else if (cmd.equals("HGET")) {
                 result = hget(cmdParams[1], cmdParams[2]);
+                append = false;
             } else if (cmd.equals("DEL")) {
                 del(cmdParams[1]);
             }
@@ -187,12 +205,26 @@ public class Redis {
         synchronized(this.fileWriter) {
             this.fileWriter.append(cmdStr + "\n");
             this.fileWriter.flush();
+            this.linesCount.addAndGet(1);
+            if (this.linesCount.get() >= this.logCapacity) {
+                this.saveSnapShot();
+                this.resetLogs();
+                this.linesCount.set(0);
+            }
         }
-
     }
 
-    public void readFromLogs(String filePath) {
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+    // to reset the bin logs file
+    // I need to close the current fileWriter handler, open a new one by append=false, and reopen again.
+    private void resetLogs() throws IOException {
+        this.fileWriter.close();
+        (new FileWriter(this.logsFileName, false)).close();
+        this.fileWriter = new FileWriter(this.logsFileName, true);
+    }
+
+    public void readFromLogs() {
+    
+        try (BufferedReader br = new BufferedReader(new FileReader(this.logsFileName))) {
             String line;
             // Read each line until the end of the file
             while ((line = br.readLine()) != null) {
@@ -203,26 +235,79 @@ public class Redis {
         }
     }
 
-    public void saveSnapShot(String filePath) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
-            oos.writeObject(this.keyValue);
-            oos.writeObject(this.keyList);
-            oos.writeObject(this.keySet);
-            oos.writeObject(this.keyMap);
-        } catch (IOException e) {
-            System.err.println("Error saving snapshot: " + e.getMessage());
+    private void flushObjectToFile(String subName, String obj) {
+        try {
+            FileWriter fileWriter = new FileWriter(this.snapshotFileName + "-" + subName, false);
+            fileWriter.append(obj);
+            fileWriter.flush();
+            fileWriter.close();
+        } catch (IOException ex) {
+            System.err.println("failed when saveing keyValye");
+            ex.printStackTrace(System.err);
         }
     }
 
-    public void readFromSnapShot(String filePath) {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
-            this.keyValue = (Map<String, String>) ois.readObject();
-            this.keyList = (Map<String, List<String>>) ois.readObject();
-            this.keySet = (Map<String, Set<String>>) ois.readObject();
-            this.keyMap = (Map<String, Map<String, String>>) ois.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Error reading snapshot: " + e.getMessage());
+    private String readObjectFromFile(String subName) {
+        try {
+            String content = Files.readString(Paths.get(this.snapshotFileName + "-" + subName));
+            return content;
+        } catch (IOException e) {
+            System.err.println("Error reading file: " + e.getMessage());
         }
+        return null;
+    }
+
+    public void saveSnapShot() {
+
+        {
+            this.flushObjectToFile("keyValue", JSON.toJSONString(this.keyValue));
+        }
+
+        {
+            this.flushObjectToFile("keyList", JSON.toJSONString(this.keyList));
+        }
+
+        {
+            this.flushObjectToFile("keySet", JSON.toJSONString(this.keySet));
+        }
+
+        {
+            this.flushObjectToFile("keyMap", JSON.toJSONString(this.keyMap));
+        }
+
+    }
+
+    public void readFromSnapShot() {
+        
+        {
+            String content = this.readObjectFromFile("keyValue");
+            if (content != null) {
+                this.keyValue = JSON.parseObject(content, new TypeReference<Map<String,String>>(){});
+            }
+
+        }
+
+        {
+            String content = this.readObjectFromFile("keyList");
+            if (content != null) {
+                this.keyList = JSON.parseObject(content, new TypeReference<Map<String,List<String>>>() {});
+            }
+        }
+
+        {
+            String content = this.readObjectFromFile("keySet");
+            if (content != null) {
+                this.keySet = JSON.parseObject(content, new TypeReference<Map<String,Set<String>>>(){});
+            }
+        }
+
+        {
+            String content = this.readObjectFromFile("keyMap");
+            if (content != null) {
+                this.keyMap = JSON.parseObject(content, new TypeReference<Map<String,Map<String,String>>>(){});
+            }
+        }
+
     }
 
 }

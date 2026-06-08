@@ -37,7 +37,7 @@ class Redis:
         return self.exec(query)
     
     def members_set(self, key):
-        query = f"SMEMBER {key}"
+        query = f"SMEMBERS {key}"
         return self.exec(query)
 
     def map_set(self, key, subkey, subvalue):
@@ -53,5 +53,19 @@ redis = Redis()
 
 redis.login("user1", "pass1")
 
-print(redis.get("key1"))
-print(redis.get("key2"))
+print(redis.get_list("keyList2", 0, 1))
+print(redis.get("hello"))
+print(redis.members_set("keySet3"))
+
+# for i in range(3000):
+#     redis.set(f"key{i}", f"value{i + 1}")
+
+# for i in range(3000):
+#     redis.set_list(f"keyList{i}", [i])
+
+# for i in range(3000):
+#     redis.add_set(f"keySet{i}", [i])
+
+# for i in range(3000):
+#     redis.map_set(f"keyMap{i}", f"subKey{i}", f"subValue{i}")
+
