@@ -1,13 +1,19 @@
 package com.script.mysql;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
+
+import io.micrometer.common.util.StringUtils;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class Table implements Serializable {
 
@@ -118,16 +124,26 @@ public class Table implements Serializable {
 
     }
 
-    public void writeObject(ObjectOutputStream oos) throws Exception{
-        oos.writeObject(this.tableName);
-        oos.writeObject(this.columns);
-        oos.writeObject(this.data);
+    public String compactToText() {
+        Map<String, String> map = new HashMap<>();
+
+        map.put("tableName", tableName);
+        map.put("columns", JSON.toJSONString(this.columns));
+        map.put("data", JSON.toJSONString(this.data));
+
+        return JSON.toJSONString(map);
     }
 
-    public Table(ObjectInputStream oos) throws Exception{
-        this.tableName = (String)oos.readObject();
-        this.columns = (List<String>)oos.readObject();
-        this.data = (List<List<String>>)oos.readObject();
+    public Table(String text) {
+        if (StringUtils.isEmpty(text)) {
+            return ;
+        }
+
+        Map<String, String> data = JSON.parseObject(text, new TypeReference<Map<String, String>>() {});
+
+        this.tableName = data.get("tableName");
+        this.columns = JSON.parseArray(data.get("columns"), String.class);
+        this.data = JSON.parseObject(data.get("data"), new TypeReference<List<List<String>>>() {});
     }
 
     public void printData() {

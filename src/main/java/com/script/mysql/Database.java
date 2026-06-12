@@ -1,10 +1,15 @@
 package com.script.mysql;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -14,7 +19,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class Database {
@@ -29,8 +37,8 @@ public class Database {
 
     public Database(String name) throws Exception{
         this.databaseName = name;
-        this.fileWriter = new FileWriter(this.databaseName, true);
-        this.readFromLogs(name);
+        this.fileWriter = new FileWriter(this.databaseName + "binlog", true);
+        this.readFromLogs();
     }
 
     public Object exec(String query) throws Exception{
@@ -156,8 +164,8 @@ public class Database {
         this.fileWriter.flush();
     }
 
-    public void readFromLogs(String filePath) {
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+    public void readFromLogs() {
+        try (BufferedReader br = new BufferedReader(new FileReader(this.databaseName + "binlog"))) {
             String line;
             // Read each line until the end of the file
             while ((line = br.readLine()) != null) {
@@ -173,41 +181,64 @@ public class Database {
         }
     }
 
-    public void saveSnapShot(String filePath) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
+    private void flushObjectToFile(String subName, String obj) throws IOException {
 
-            oos.writeObject(this.databaseName);
-            oos.writeObject(tableDict.size());
-            for(Table table : tableDict.values()) {
-                try {
-                    table.writeObject(oos);
-                } catch (Exception ex) {
+        FileWriter fileWriter = new FileWriter(this.databaseName + "-" + subName, false);
+        fileWriter.append(obj);
+        fileWriter.flush();
+        fileWriter.close();
+        
+    }
 
-                }
+    private String readObjectFromFile(String subName) throws IOException {
+        
+        String content = Files.readString(Paths.get(this.databaseName + "-" + subName));
+        return content;
+        
+    }
+
+    public void saveSnapShot() {
+        try {
+
+            Map<String, String> dbBase = new HashMap<>();
+            dbBase.put("databaseName", this.databaseName);
+            dbBase.put("tables", JSON.toJSONString(this.tableDict.keySet()));
+
+            this.flushObjectToFile("base", JSON.toJSONString(dbBase));
+
+            for(Table table : this.tableDict.values()) {
+                this.flushObjectToFile(table.getTableName(), table.compactToText());                
             }
 
+            
         } catch (IOException e) {
             System.err.println("Error saving snapshot: " + e.getMessage());
         }
     }
 
-    public void readFromSnapShot(String filePath) {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
+    public void readFromSnapShot() {
+        try {
             
-            this.databaseName = (String)ois.readObject();
-            int tableSize = (Integer)ois.readObject();
-            for(int i=0;i<tableSize;i++) {
+            String dbBase = this.readObjectFromFile("base");
+            Map<String, String> baseInfo = JSON.parseObject(dbBase, new TypeReference<Map<String, String>>() {});
 
+            this.databaseName = baseInfo.get("databasename");
+            Set<String> tableNameList = JSON.parseArray(baseInfo.get("tables"), String.class).stream().collect(Collectors.toSet());;
+
+            tableNameList.forEach( tableName -> {
+                
                 try {
-                    Table table = new Table(ois);
-                    this.tableDict.put(table.getTableName(), table);
-                } catch (Exception ex) {
+                    String tableData = this.readObjectFromFile(tableName);
+                    Table table = new Table(tableData);
+                    this.tableDict.put(tableName, table);
+                } catch (IOException e) {
 
+                    e.printStackTrace();
                 }
+                
+            });
 
-            }
-
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             System.err.println("Error reading snapshot: " + e.getMessage());
         }
     }

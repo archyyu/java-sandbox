@@ -21,8 +21,8 @@ public class MysqlConfig {
     public void loadMysqlData() throws Exception{
 
         Database database = this.shopDatabase();
-        // database.readFromSnapShot();
-        // database.readFromLogs();
+        database.readFromSnapShot();
+        database.readFromLogs();
 
     }
 
