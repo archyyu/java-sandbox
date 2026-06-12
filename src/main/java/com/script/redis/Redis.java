@@ -38,12 +38,6 @@ public class Redis {
     // so when it is to recover, it would firstly recover from the latest snapshot,
     // then replay the WAL files.
     public Redis(String filename) throws IOException {
-        try {
-            this.linesCount.addAndGet((int)Files.lines(Path.of(filename)).count());
-        } catch (Exception ex) {
-            //could ignore, should be the file doesnt exists.
-        }
-
 
         this.fileWriter = new FileWriter(filename, true);
         this.logsFileName = filename;
@@ -229,6 +223,7 @@ public class Redis {
             // Read each line until the end of the file
             while ((line = br.readLine()) != null) {
                 this.exec(line, false);
+                this.linesCount.addAndGet(1);
             }
         } catch (IOException e) {
             System.err.println("Error reading file: " + e.getMessage());

@@ -3,6 +3,7 @@ package com.script.mysql;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -12,13 +13,9 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -27,17 +24,21 @@ import java.util.List;
 
 public class Database {
     
-    private FileWriter fileWriter;
+    private FileWriter logfileWriter;
 
     private String databaseName;
 
     private Map<String, Table> tableDict = new ConcurrentHashMap<>();
 
+    private AtomicInteger linesCount = new AtomicInteger(0);
+
+    private int logsCapacity = 10000;
+
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     public Database(String name) throws Exception{
         this.databaseName = name;
-        this.fileWriter = new FileWriter(this.databaseName + "binlog", true);
+        this.logfileWriter = new FileWriter(this.databaseName + "binlog", true);
         this.readFromLogs();
     }
 
@@ -157,11 +158,25 @@ public class Database {
     }
 
     private void appendLog(String cmdStr) throws IOException {
-        if (this.fileWriter == null) {
+        if (this.logfileWriter == null) {
             return ;
         }
-        this.fileWriter.append(cmdStr + "\n");
-        this.fileWriter.flush();
+        this.linesCount.addAndGet(1);
+        this.logfileWriter.append(cmdStr + "\n");
+        this.logfileWriter.flush();
+        if (linesCount.get() >= this.logsCapacity) {
+
+            this.saveSnapShot();
+
+            //reset the logs file
+            this.logfileWriter.close();
+            (new FileWriter(this.databaseName + "binlog", false)).close();
+            this.logfileWriter = new FileWriter(this.databaseName + "binlog", true);
+            
+            this.linesCount.set(0);
+
+        }
+
     }
 
     public void readFromLogs() {
@@ -171,6 +186,7 @@ public class Database {
             while ((line = br.readLine()) != null) {
                 try {
                     this.exec(line, false);
+                    this.linesCount.addAndGet(1);
                 } catch (Exception ex) {
                      System.err.println(line + ", Error exec line: " + ex.getMessage());
                 }
@@ -235,7 +251,7 @@ public class Database {
 
                     e.printStackTrace();
                 }
-                
+
             });
 
         } catch (IOException e) {
